@@ -34,11 +34,10 @@ Arduino IDE 1.6.10以上 + Arduino STM32環境がインストールされてい�
 ##ハードウェア構成
 **(注意)**  
 PS/2 I/FのCLK、DATAの信号電圧に5Vを利用する場合は、
-5Vトレラント(5V耐性)のピンを利用して下さい。  
-SM32F103C8T6の5Vトレラント対応ピン
-
-- PA8,PA9,PA10,PA11,PA12,PA13,PA14,PA15  
-- PB3,PB4,PB6,PB7,PB8,PB9,PB10,PB11PB12,PB13,PB14,PB15 
+5Vトレラント(5V耐性)のピンを利用して下さい。  
+SM32F103C8T6の5Vトレラント対応ピン  
+- PA8,PA9,PA10,PA11,PA12,PA13,PA14,PA15
+- PB3,PB4,PB6,PB7,PB8,PB9,PB10,PB11PB12,PB13,PB14,PB15
 
 ### USBコネクタ接続構成
 有線USBキーボードの多くのは、PS/2インタフェースにも対応しています。  
