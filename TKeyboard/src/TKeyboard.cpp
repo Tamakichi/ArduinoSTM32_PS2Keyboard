@@ -2,6 +2,8 @@
 // file: TKeyboard.h
 // Arduino STM32用 PS/2 キーボード制御 by たま吉さん
 // 作成日 2017/01/31
+// 修正日 2017/02/01, USキーボードの定義ミス修正
+// 修正日 2017/02/02, ctrl_LEDのバグ修正
 //
 
 #include <TKeyboard.h>
@@ -12,7 +14,7 @@ static uint8_t _flgLED; // LED制御利用フラグ(true:利用する false:利�
 static uint8_t _flgUS;  // USキーボードの利用
 static uint8_t (*key_ascii)[2];
    
-// スキャンコード解析状態コード
+// スキャンコード解析状態遷移コード
 #define STS_SYOKI          0  // 初期
 #define STS_1KEY           1   // 1バイト(END) [1]
 #define STS_1KEY_BREAK     2   // BREAK[2]
@@ -521,11 +523,12 @@ DONE:
 //  0:正常 1:異常
 //
 uint8_t TKeyboard::ctrl_LED(uint8_t swCaps, uint8_t swNum, uint8_t swScrol) {
-  uint8_t c=0,err,tmp;
-  pb.disableInterrupts();
 
   if(!_flgLED)
     return 0;
+
+  uint8_t c=0,err,tmp;
+  pb.disableInterrupts();
     
   if(swCaps)  c|=0x04; // CapsLock LED
   if(swNum)   c|=0x02; // NumLock LED
