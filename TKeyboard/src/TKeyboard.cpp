@@ -4,6 +4,7 @@
 // 作成日 2017/01/31
 // 修正日 2017/02/01, USキーボードの定義ミス修正
 // 修正日 2017/02/02, ctrl_LEDのバグ修正
+// 修正日 2017/02/04, ctrl_LEDの修正
 //
 
 #include <TKeyboard.h>
@@ -540,7 +541,6 @@ uint8_t TKeyboard::ctrl_LED(uint8_t swCaps, uint8_t swNum, uint8_t swScrol) {
   if (err = pb.response(&tmp)) goto ERROR;
 
 ERROR:
-  pb.mode_idole(TPS2::D_IN); 
   pb.enableInterrupts();
   return err;  
 }

@@ -2,6 +2,7 @@
 // file: TPS2.cpp
 // Arduino STM32用 PS/2インタフェース by たま吉さん
 // 作成日 2017/01/31
+// 修正日 2017/02/04, LED制御のための修正
 //
 
 #include <TPS2.h>
@@ -263,7 +264,7 @@ uint8_t TPS2::hostSend(uint8_t data) {
   if (wait_Clk(HIGH, 50)){ err = 10;goto ERROR; }
 
 ERROR: // 終了処理
-  mode_stop();              // バスを送信禁止状態に設定
+  mode_idole(D_IN);        // バスをアイドル状態にする(2017/02/4)
   enableInterrupts();       // 割り込み許可
   return err;  
 }
@@ -276,7 +277,7 @@ uint8_t TPS2::HostRcev(uint8_t* rcv) {
 
   // バス準備
   disableInterrupts();    // 割り込み禁止
-  mode_idole(D_IN);        // バスをアイドル状態にする
+
 
   // STARTビットの受信
   if ( wait_Clk(LOW, 1000) ) { err = 1; goto ERROR; }    
@@ -302,8 +303,6 @@ uint8_t TPS2::HostRcev(uint8_t* rcv) {
 
 ERROR:
 
-  // バスを送信禁止状態に設定する
-  mode_stop();
   enableInterrupts();
   *rcv = data;
   return err;
