@@ -3,17 +3,19 @@
 // Arduino STM32用 PS/2 キーボード制御 by たま吉さん
 // 作成日 2017/01/31
 // 修正日 2017/02/01, USキーボードの定義ミス修正
-// 修正日 2017/02/02, ctrl_LEDのバグ修正
-// 修正日 2017/02/04, ctrl_LEDの修正
+// 修正日 2017/02/02, ctrl_LED()のバグ修正
+// 修正日 2017/02/03, ctrl_LED()のレスポンス受信処理の修正
+// 修正日 2017/02/05, setPriority()関数の追加、ctrl_LED()の処理方式変更
+// 修正日 2017/02/05, KEY_SPACEのキーコード変更(32=>35)対応
+// 修正日 2017/04/10, NumLock+編集キーの不具合暫定対応
 //
 
 #include <TKeyboard.h>
-//#define USE_USKEYBOARD 1
 
 static TPS2 pb; // PS/2 I/F オブジェクト
-static uint8_t _flgLED; // LED制御利用フラグ(true:利用する false:利用しない)
-static uint8_t _flgUS;  // USキーボードの利用
-static uint8_t (*key_ascii)[2];
+volatile static uint8_t _flgLED; // LED制御利用フラグ(true:利用する false:利用しない)
+volatile static uint8_t _flgUS;  // USキーボードの利用
+volatile static uint8_t (*key_ascii)[2];
    
 // スキャンコード解析状態遷移コード
 #define STS_SYOKI          0  // 初期
@@ -26,7 +28,8 @@ static uint8_t (*key_ascii)[2];
 #define STS_MKEY_BREAK_1   7   // マルチバイト1バイト目＋BREAK+2バイト目(END)[3-2-1]
 #define STS_MKEY_BREAK_SC2 8   // マルチバイト1バイト目+BREAK+prnScrn2バイト目[3-2-2]
 #define STS_MKEY_SC2       9   // マルチバイト1バイト目+prnScrn2バイト目[3-3]
-#define STS_MKEY_PS       10   // pauseキー1バイト目[4]
+#define STS_MKEY_SC3      10   // マルチバイト1バイト目+prnScrn3バイト目[3-3-1]
+#define STS_MKEY_PS       11   // pauseキー1バイト目[4]
 
 // ロックキーの状態
 // ※0ビット目でLOCKのON/OFFを判定している
@@ -76,37 +79,36 @@ static uint8_t keycode2[][2] __FLASH__ = {
 // Pause Key スキャンコード
 static uint8_t pausescode[] __FLASH__ =  {0xE1,0x14,0x77,0xE1,0xF0,0x14,0xF0,0x77};
 
-// PrintScreen Key スキャンコード
-static uint8_t prnScrncode[] __FLASH__ =  {0xE0,0x12,0xE0,0x7C};             // Make用
+// PrintScreen Key スキャンコード(break);
 static uint8_t prnScrncode2[] __FLASH__ = {0xE0,0xF0,0x7C,0xE0,0xF0,0x12};   // Break用
+
 
 // キーコード・ASCIIコード変換テーブル
 // {シフト無しコード, シフトありコード }
-//#if defined(USE_USKEYBOARD)
+
 // USキーボード
 static uint8_t key_ascii_us[][2] __FLASH__ = {
-  /*{0x1B,0x1B},{0x09,0x09},{0x20,0x20},{0x08,0x08},{0x7F,0x7F},{0x0D,0x0D},*/
-  { ',','\"'},{ ';', ':'},{ ',', '<'},{ '-', '_'},{ '.', '>'},{ '/', '?'},{ '[', '{'},{ ']', '}'},
-  { '\\','|'},{'\\', '|'},{ '=', '+'},{ '\\','_'},{ '0', ')'},{ '1', '!'},{ '2', '@'},{ '3', '#'},
-  { '4', '$'},{ '5', '%'},{ '6', '^'},{ '7', '&'},{ '8', '*'},{ '9', '('},{'\\' ,'|'},{  0 ,  0 },
-  {  0 ,  0 },{  0 ,  0 },{  0 ,  0 },{  0 ,  0 },{  0 ,  0 },{ 'a', 'A'},{ 'b', 'B'},{ 'c', 'C'},
-  { 'd', 'D'},{ 'e', 'E'},{ 'f', 'F'},{ 'g', 'G'},{ 'h', 'H'},{ 'i', 'I'},{ 'j', 'J'},{ 'k', 'K'},
-  { 'l', 'L'},{ 'm', 'M'},{ 'n', 'N'},{ 'o', 'O'},{ 'p', 'P'},{ 'q', 'Q'},{ 'r', 'R'},{ 's', 'S'},
-  { 't', 'T'},{ 'u', 'U'},{ 'v', 'V'},{ 'w', 'W'},{ 'x', 'X'},{ 'y', 'Y'},{ 'z', 'Z'},
+  /*{0x1B,0x1B},{0x09,0x09},{0x0D,0x0D},{0x08,0x08},{0x7F,0x7F},*/
+  { ' ', ' '},{ ',','\"'},{ ';', ':'},{ ',', '<'},{ '-', '_'},{ '.', '>'},{ '/', '?'},{ '[', '{'},
+  { ']', '}'},{ '\\','|'},{'\\', '|'},{ '=', '+'},{ '\\','_'},{ '0', ')'},{ '1', '!'},{ '2', '@'},
+  { '3', '#'},{ '4', '$'},{ '5', '%'},{ '6', '^'},{ '7', '&'},{ '8', '*'},{ '9', '('},{'\\' ,'|'},
+  {  0 ,  0 },{  0 ,  0 },{  0 ,  0 },{  0 ,  0 },{  0 ,  0 },{  0 ,  0 },{ 'a', 'A'},{ 'b', 'B'},
+  { 'c', 'C'},{ 'd', 'D'},{ 'e', 'E'},{ 'f', 'F'},{ 'g', 'G'},{ 'h', 'H'},{ 'i', 'I'},{ 'j', 'J'},
+  { 'k', 'K'},{ 'l', 'L'},{ 'm', 'M'},{ 'n', 'N'},{ 'o', 'O'},{ 'p', 'P'},{ 'q', 'Q'},{ 'r', 'R'},
+  { 's', 'S'},{ 't', 'T'},{ 'u', 'U'},{ 'v', 'V'},{ 'w', 'W'},{ 'x', 'X'},{ 'y', 'Y'},{ 'z', 'Z'},
 };
-//#else
+
 //（日本語キーボード)
 static uint8_t key_ascii_jp[][2] __FLASH__ = {
-  /*{0x1B,0x1B},{0x09,0x09},{0x20,0x20},{0x08,0x08},{0x7F,0x7F},{0x0D,0x0D},*/
-  { ':', '*'},{ ';', '+'},{ ',', '<'},{ '-', '='},{ '.', '>'},{ '/', '?'},{ '@', '`'},{ '[', '{'},
-  { '\\','|'},{ ']', '}'},{ '^', '~'},{ '\\','_'},{ '0', 0  },{ '1', '!'},{ '2','\"'},{ '3', '#'},
-  { '4', '$'},{ '5', '%'},{ '6', '&'},{ '7','\''},{ '8', '('},{ '9', ')'},{  0 ,  0 },{  0 ,  0 },
-  {  0 ,  0 },{  0 ,  0 },{  0 ,  0 },{  0 ,  0 },{  0 ,  0 },{ 'a', 'A'},{ 'b', 'B'},{ 'c', 'C'},
-  { 'd', 'D'},{ 'e', 'E'},{ 'f', 'F'},{ 'g', 'G'},{ 'h', 'H'},{ 'i', 'I'},{ 'j', 'J'},{ 'k', 'K'},
-  { 'l', 'L'},{ 'm', 'M'},{ 'n', 'N'},{ 'o', 'O'},{ 'p', 'P'},{ 'q', 'Q'},{ 'r', 'R'},{ 's', 'S'},
-  { 't', 'T'},{ 'u', 'U'},{ 'v', 'V'},{ 'w', 'W'},{ 'x', 'X'},{ 'y', 'Y'},{ 'z', 'Z'},
+  /*{0x1B,0x1B},{0x09,0x09},{0x0D,0x0D},{0x08,0x08},{0x7F,0x7F},*/
+  { ' ', ' '},{ ':', '*'},{ ';', '+'},{ ',', '<'},{ '-', '='},{ '.', '>'},{ '/', '?'},{ '@', '`'},
+  { '[', '{'},{ '\\','|'},{ ']', '}'},{ '^', '~'},{ '\\','_'},{ '0', 0  },{ '1', '!'},{ '2','\"'},
+  { '3', '#'},{ '4', '$'},{ '5', '%'},{ '6', '&'},{ '7','\''},{ '8', '('},{ '9', ')'},{  0 ,  0 },
+  {  0 ,  0 },{  0 ,  0 },{  0 ,  0 },{  0 ,  0 },{  0 ,  0 },{  0 ,  0 },{ 'a', 'A'},{ 'b', 'B'},
+  { 'c', 'C'},{ 'd', 'D'},{ 'e', 'E'},{ 'f', 'F'},{ 'g', 'G'},{ 'h', 'H'},{ 'i', 'I'},{ 'j', 'J'},
+  { 'k', 'K'},{ 'l', 'L'},{ 'm', 'M'},{ 'n', 'N'},{ 'o', 'O'},{ 'p', 'P'},{ 'q', 'Q'},{ 'r', 'R'},
+  { 's', 'S'},{ 't', 'T'},{ 'u', 'U'},{ 'v', 'V'},{ 'w', 'W'},{ 'x', 'X'},{ 'y', 'Y'},{ 'z', 'Z'},
 };
-//#endif
 
 // テンキー用変換テーブル 94～111
 // {通常コード, NumLock/Shift時コード, KEYコード(=1)/ASCII(=0)区分 }
@@ -193,6 +195,11 @@ void TKeyboard::disableInterrupts() {
   pb.disableInterrupts();
 }
 
+// 割り込み優先度の設定
+void TKeyboard::setPriority(uint8_t n) {
+  pb.setPriority(n);
+}
+
 // PS/2ラインをアイドル状態に設定
 void TKeyboard::mode_idole() {
   pb.mode_idole(TPS2::D_IN);
@@ -259,6 +266,8 @@ uint16_t TKeyboard::scanToKeycode() {
 
   while(pb.available()) {
     c = pb.dequeue();     // キューから1バイト取り出し
+  	//Serial.print("S=");
+  	//Serial.println(c,HEX);
     switch(state) {
     case STS_SYOKI: // [0]->
       if (c <= 0x83) {
@@ -330,23 +339,32 @@ uint16_t TKeyboard::scanToKeycode() {
           }
         }
         break;
-        
+      
       case STS_MKEY_SC2:  // [3-3]->
-        scIndex++;
-        if (scIndex >= sizeof(prnScrncode)) {
-          goto STS_ERROR; // -> ERROR
-        }
-        if (c == prnScrncode[scIndex]) {
-          if (scIndex == sizeof(prnScrncode)-1) {
-            // ->[3-3-1-1](END)
-            code = KEY_PrintScreen ; // PrintScreen key
-            goto DONE;            
-          } else {
-            continue;
-          }
+        if ( c == 0xe0 ) {
+          state  = STS_MKEY_SC3;
+          continue;
         }
         break;
-
+      
+      case STS_MKEY_SC3:
+    	switch(c) {
+    		case 0x70:code = KEY_Insert;      goto DONE;break; // [INS]
+    		case 0x71:code = KEY_Delete;      goto DONE;break; // [DEL]
+    	    case 0x6B:code = KEY_L_Arrow;     goto DONE;break; // [←]
+    	    case 0x6C:code = KEY_Home;        goto DONE;break; // [HOME]
+    	    case 0x69:code = KEY_End;         goto DONE;break; // [END]
+    	    case 0x75:code = KEY_Up_Arrow;    goto DONE;break; // [↑]
+    	    case 0x72:code = KEY_Down_Arrow;  goto DONE;break; // [↓]
+    	    case 0x7d:code = KEY_PageUp;      goto DONE;break; // [PageUp]
+    	    case 0x7a:code = KEY_PageDown;    goto DONE;break; // [PageDown]
+    	    case 0x74:code = KEY_R_Arrow;     goto DONE;break; // [→]
+    	    case 0x7C:code = KEY_PrintScreen; goto DONE;break; // [PrintScreen]
+    	    default:  goto STS_ERROR;break;  // -> ERROR
+    	}
+  	
+    	break;
+    	
       case STS_MKEY_PS:  // [4]->
         scIndex++;
         if (scIndex >= sizeof(pausescode)) {
@@ -423,11 +441,11 @@ keyEvent TKeyboard::read() {
 
   // 通常キー
 //  if (code >= KEY_ESC && code <= KEY_Z) {
-  if (code >= KEY_Colon && code <= KEY_Z) {
+  if (code >= KEY_Space && code <= KEY_Z) {	
      if (code >= KEY_A && code <= KEY_Z)  // A-ZのCapsLockキー状態に影響するキーの場合の処理
-        c.value = key_ascii[code-KEY_Colon][((sts_CapsLock&1)&&sts_state.kevt.SHIFT)||(!(sts_CapsLock&1)&&!sts_state.kevt.SHIFT)?0:1];
+        c.value = key_ascii[code-KEY_Space][((sts_CapsLock&1)&&sts_state.kevt.SHIFT)||(!(sts_CapsLock&1)&&!sts_state.kevt.SHIFT)?0:1];
       else 
-        c.value = key_ascii[code-KEY_Colon][sts_state.kevt.SHIFT?1:0];
+        c.value = key_ascii[code-KEY_Space][sts_state.kevt.SHIFT?1:0];
      goto DONE;
      
   } else if (code >= KEY_PAD_Equal && code <= KEY_PAD_Slash) {
@@ -435,6 +453,7 @@ keyEvent TKeyboard::read() {
    if ( (sts_numlock & 1) &&  !sts_state.kevt.SHIFT ) {
       // NumLock有効でShiftが押させていない場合
       c.value = tenkey[code-KEY_PAD_Equal][0];      
+      //Serial.println("[DEBUG:NumLock]");
    } else {
       c.value = tenkey[code-KEY_PAD_Equal][1];
       if (tenkey[code-KEY_PAD_Equal][2]) c.value |= KEY_CODE;
@@ -514,7 +533,6 @@ DONE:
   return c.kevt;
 }
 
-
 // キーボードLED点灯設定
 // 引数
 //  swCaps : CapsLock   LED制御 0:off 1:on
@@ -529,18 +547,29 @@ uint8_t TKeyboard::ctrl_LED(uint8_t swCaps, uint8_t swNum, uint8_t swScrol) {
     return 0;
 
   uint8_t c=0,err,tmp;
-  pb.disableInterrupts();
+  //pb.disableInterrupts();
     
   if(swCaps)  c|=0x04; // CapsLock LED
   if(swNum)   c|=0x02; // NumLock LED
   if(swScrol) c|=0x01; // ScrollLock LED
-  	  
-  if (err = pb.hostSend(0xed)) goto ERROR;
-  if (err = pb.response(&tmp)) goto ERROR;
-  if (err = pb.hostSend(c)) goto ERROR; 
-  if (err = pb.response(&tmp)) goto ERROR;
 
+  if (err = pb.send(0xed)) goto ERROR;
+  if (err = pb.rcev(&tmp)) goto ERROR;
+  if (tmp != 0xFA) {
+    //Serial.println("Send Error 1");
+    goto ERROR;
+  }
+  if (err = pb.send(c)) goto ERROR;   
+  if (err = pb.rcev(&tmp)) goto ERROR;
+  if (tmp != 0xFA) {
+    //Serial.println("Send Error 2");
+    goto ERROR;
+  }
+  goto DONE;
+  
 ERROR:
-  pb.enableInterrupts();
+  // キーボードの初期化による復旧
+  init();
+DONE:
   return err;  
 }

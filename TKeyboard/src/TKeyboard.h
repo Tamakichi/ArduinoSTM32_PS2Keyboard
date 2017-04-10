@@ -2,6 +2,8 @@
 // file: TKeyboard.h
 // Arduino STM32用 PS/2 キーボード制御 by たま吉さん
 // 作成日 2017/01/31
+// 修正日 2017/02/05, setPriority()関数の追加
+// 修正日 2017/02/05, KEY_SPACEのキーコード変更(32=>35)
 //
 
 #ifndef __TKEYBOARD_H__
@@ -51,10 +53,10 @@
 
 #define KEY_ESC			    30	// [ESC]
 #define KEY_Tab 		    31	// [Tab]
-#define KEY_Space		    32	// [空白]
+#define KEY_Enter       32  // [Enter]
+#define KEY_Space		    35	// [空白]
 #define KEY_Backspace	  33	// [BackSpace]
 #define KEY_Delete		  34	// [Delete]
-#define KEY_Enter		    35	// [Enter]
 
 #define KEY_Colon		    36	// [: *]
 #define KEY_Semicolon	  37	// [; +]
@@ -220,8 +222,9 @@ class TKeyboard {
     static uint8_t ctrl_LED(uint8_t swCaps, uint8_t swNum, uint8_t swScrol);
 
     // CLKピン割り込み制御
-    inline static void enableInterrupts();   // CLK変化割り込み許可
-    inline static void disableInterrupts();  // CLK変化割り込み禁止
+    inline static void enableInterrupts();      // CLK変化割り込み許可
+    inline static void disableInterrupts();     // CLK変化割り込み禁止
+    static void setPriority(uint8_t n);  // 割り込み優先レベルの設定
 
     // PS/2ライン制御
     inline static void  mode_idole();     // アイドル状態に設定

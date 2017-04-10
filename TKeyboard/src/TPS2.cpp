@@ -3,6 +3,8 @@
 // Arduino STM32用 PS/2インタフェース by たま吉さん
 // 作成日 2017/01/31
 // 修正日 2017/02/04, LED制御のための修正
+// 修正日 2017/02/04, rcev()関数の追加
+// 修正日 2017/02/05, send(),setPriority()関数の追加
 //
 
 #include <TPS2.h>
@@ -11,18 +13,25 @@
 #include <libmaple/timer.h>
 #include <libmaple/exti.h>
 
-static uint8_t _clkPin; // CLKピン
-static uint8_t _datPin; // DATピン
-static uint8_t _clkDir; // CLK入出力方向
-static uint8_t _datDir; // CLK入出力方向
-static uint8_t _bus;    // バス状態
-static uint8_t _err;    // 直前のAPIエラー
+volatile static uint8_t _clkPin; // CLKピン
+volatile static uint8_t _datPin; // DATピン
+volatile static uint8_t _clkDir; // CLK入出力方向
+volatile static uint8_t _datDir; // CLK入出力方向
+volatile static uint8_t _bus;    // バス状態
+volatile static uint8_t _err;    // 直前のAPIエラー
 
 static uint8_t  _queue[QUEUESIZE];  // 受信バッファ
-static uint16_t _q_top; // バッファ取出し位置
-static uint16_t _q_btm; // バッファ挿入位置
-static uint8_t  _q_s;   // キュー操作排他セマフォ
+volatile static uint16_t _q_top; // バッファ取出し位置
+volatile static uint16_t _q_btm; // バッファ挿入位置
+volatile static uint8_t  _q_s;   // キュー操作排他セマフォ
 
+volatile static uint8_t _flg_rs;   // 送受信モード 0:受信 1:送信
+
+volatile static uint8_t _sendState = 0;   // ビット処理状態
+volatile static uint8_t _sendData  = 0;   // 送信データ
+volatile static uint8_t _sendParity = 1;  // パリティビット  
+volatile static nvic_irq_num  _irq_num;   // 割り込みベクター番号
+  
 //
 // exti_numを_exti_irq_numに変換
 // 引数   exti_num 外部割込みライン番号
@@ -53,12 +62,17 @@ static nvic_irq_num exti2irqNum(exti_num n) {
 
 // CLK変化割り込み許可
 void TPS2::enableInterrupts() {
-  nvic_irq_enable(exti2irqNum((exti_num)PIN_MAP[_clkPin].gpio_bit));
+  nvic_irq_enable(_irq_num);
 }
 
 // CLK変化割り込み禁止
 void TPS2::disableInterrupts() {
-  nvic_irq_disable(exti2irqNum((exti_num)PIN_MAP[_clkPin].gpio_bit));
+  nvic_irq_disable(_irq_num);
+}
+
+// 割り込み優先レベルの設定
+void TPS2::setPriority(uint8_t n) {
+  nvic_irq_set_priority(exti2irqNum((exti_num)PIN_MAP[_clkPin].gpio_bit), n); 
 }
 
 // ポート番号の設定
@@ -88,8 +102,10 @@ uint8_t TPS2::error() {return _err; } ;
 //   clk : PS/2 CLK
 //   dat : PS/2 DATA
 // 
+
 void TPS2::begin(uint8_t clk, uint8_t dat) {
   setPort(clk,dat);
+  _irq_num = exti2irqNum((exti_num)PIN_MAP[_clkPin].gpio_bit);
   
   // バスを停止状態に設定
   clkSet_Out();
@@ -114,27 +130,23 @@ void TPS2::end() {
 // CLKを出力モードに設定
 void  TPS2::clkSet_Out() {
   gpio_set_mode(PIN_MAP[_clkPin].gpio_device, PIN_MAP[_clkPin].gpio_bit, GPIO_OUTPUT_OD);
-  //pinMode(_clkPin,OUTPUT_OPEN_DRAIN);
   _clkDir = D_OUT;  
 }
 
 // CLKを入力モードに設定
 void  TPS2::clkSet_In() {
-  //pinMode(_clkPin,INPUT);
   gpio_set_mode(PIN_MAP[_clkPin].gpio_device, PIN_MAP[_clkPin].gpio_bit, GPIO_INPUT_FLOATING);
   _clkDir = D_IN;
 }
 
 // DATを出力モードに設定
 void  TPS2::datSet_Out() {
-  //pinMode(_datPin,OUTPUT_OPEN_DRAIN);
   gpio_set_mode(PIN_MAP[_datPin].gpio_device, PIN_MAP[_datPin].gpio_bit, GPIO_OUTPUT_OD);
   _datDir = D_OUT;    
 }
 
 // DATを入力モードに設定
 void  TPS2::datSet_In() {
-  //pinMode(_datPin,INPUT);
   gpio_set_mode(PIN_MAP[_datPin].gpio_device, PIN_MAP[_datPin].gpio_bit, GPIO_INPUT_FLOATING);
   _datDir = D_IN;
 }
@@ -234,6 +246,7 @@ uint8_t TPS2::hostSend(uint8_t data) {
   disableInterrupts();    // 割り込み禁止
   mode_stop();            // バスを送信禁止状態に設定
   mode_send();            // バスをホストからの[送信要求]に設定
+ 
   if (wait_Clk(LOW, 10000)) { err = 1; goto ERROR; } // デバイスがCLKラインをLOWにするのを待つ(最大10msec)   
 
   // データ8ビット送信
@@ -264,9 +277,28 @@ uint8_t TPS2::hostSend(uint8_t data) {
   if (wait_Clk(HIGH, 50)){ err = 10;goto ERROR; }
 
 ERROR: // 終了処理
-  mode_idole(D_IN);        // バスをアイドル状態にする(2017/02/4)
+  mode_idole(D_IN);        // バスをアイドル状態にする
   enableInterrupts();       // 割り込み許可
   return err;  
+}
+
+//
+// データ受信(キューからの取り出し、割り込み経由)
+//
+uint8_t TPS2::rcev(uint8_t* rcv) {
+  uint8_t err = 1;
+  uint16_t tm=1500;
+
+  do {
+    if (available()) {
+      *rcv = dequeue();
+      err = 0;
+      break;
+    }
+    delay_us(1);
+    tm--;
+  } while(tm);
+  return err;
 }
 
 // データ受信
@@ -277,7 +309,6 @@ uint8_t TPS2::HostRcev(uint8_t* rcv) {
 
   // バス準備
   disableInterrupts();    // 割り込み禁止
-
 
   // STARTビットの受信
   if ( wait_Clk(LOW, 1000) ) { err = 1; goto ERROR; }    
@@ -321,15 +352,97 @@ uint8_t TPS2::response(uint8_t *rcv) {
   return err;  
 }
 
+// 割り込みハンドラ経由データ送信
+uint8_t TPS2::send(uint8_t data) {
+
+  // 送信データセット
+  _sendData = data;       // 送信データセット
+  _flg_rs = 1;
+  _sendState = 0;
+  
+  // 送信準備
+  disableInterrupts();    // 割り込み禁止
+  mode_stop();            // バスを送信禁止状態に設定
+  mode_send();            // バスをホストからの[送信要求]に設定
+  clkSet_In();
+  
+  enableInterrupts();      // 割り込み許可
+
+  while(_flg_rs);
+
+ERROR: // 終了処理
+
+DONE:  
+  disableInterrupts();    // 割り込み禁止
+  mode_idole(D_IN);        // バスをアイドル状態にする(2017/02/4)
+  enableInterrupts();      // 割り込み許可
+  return _err;  
+    
+}
+
+//
+// 割り込みハンドラサブルーチン
+// データ送信用
+//
+void TPS2::clkPinHandleSend() {
+
+  if (Clk_In()) {
+      goto END;
+  }
+
+  _sendState++;
+  if ( _sendState >=1 && _sendState <= 8 ) {
+    // データの送信
+    delay_us(15);
+    if (_sendData & 1) {
+      Dat_Out(HIGH);
+      _sendParity++;
+    } else {
+      Dat_Out(LOW);
+    }
+    _sendData >>= 1;
+    goto END;
+  } else if ( _sendState == 9 ) {
+    // パリティ送信
+    delay_us(15);
+    Dat_Out(_sendParity & 1);
+    goto END;
+  } else if ( _sendState == 10 ) {
+    // ストップビット送信
+    delay_us(15);
+    Dat_Out(HIGH); 
+    goto END;
+  } else if ( _sendState == 11 ) {
+    // ACK確認(確認しない) 終了
+    goto DONE;
+  } else {
+    goto ERROR;
+  }
+
+ERROR:
+  //Serial.println("Error");
+  _err = _sendState;
+DONE:
+  _sendParity = 1;
+  _sendState =0;
+  _flg_rs = 0;
+END:
+  return;
+}
+
 //
 // CLKピン状態変化 ハンドラ
 //
 void TPS2::clkPinHandle() {
-  static uint8_t state = 0;	// ビット処理状態
-  static uint8_t data = 0;	// 受信データ
-  static uint8_t parity = 1;        // パリティビット
+  volatile static uint8_t state = 0;  // ビット処理状態
+  volatile static uint8_t data = 0;   // 受信データ
+  volatile static uint8_t parity = 1; // パリティビット
 
-  // return unless falling edge
+  if (_flg_rs) {
+    clkPinHandleSend(); // データ送信モード時は、サブルーチンで処理
+    return;
+  }
+
   if (Clk_In()) {
       goto END;
   }
@@ -366,7 +479,6 @@ void TPS2::clkPinHandle() {
   }
   return;
   
-
 ERROR:
   _err = state;
 DONE:

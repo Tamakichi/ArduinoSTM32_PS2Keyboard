@@ -2,13 +2,15 @@
 // file: TPS2.h
 // Arduino STM32用 PS/2インタフェース by たま吉さん
 // 作成日 2017/01/31
+// 修正日 2017/02/04, rcev()関数の追加
+// 修正日 2017/02/05, send(),setPriority()関数の追加
 //
 
 #ifndef __TPS2_H__
 #define __TPS2_H__
 
 #include <Arduino.h>
-#define QUEUESIZE 64 // キーバッファサイズ
+#define QUEUESIZE 128 // キーバッファサイズ
 
 // PS/2バスの定義
 
@@ -59,16 +61,20 @@ class TPS2 {
     static uint8_t hostSend(uint8_t data); // データ送信
     static uint8_t HostRcev(uint8_t* rcv); // データ受信
     static uint8_t response(uint8_t* rcv); // 応答受信
-
+    static uint8_t rcev(uint8_t* rcv); // データ受信((キューからの取り出し、割り込み経由)
+    static uint8_t send(uint8_t data); // データ送信(割り込み経由)
+    
     // 割り込み制御
     static void enableInterrupts();   // CLK変化割り込み許可
     static void disableInterrupts();  // CLK変化割り込み禁止
-
+    static void setPriority(uint8_t n);  // 割り込み優先レベルの設定
+    
     // 割り込みハンドラ
     static void clkPinHandle();     // クロックピン状態変化ハンドラ
-
+    static void clkPinHandleSend(); // クロックピン状態変化ハンドラ送信サブルーチン
+    
     // キーバッファ操作
-    static void clear_queue();              // キューのクリア
+    static void clear_queue();             // キューのクリア
     static uint8_t enqueue(uint8_t data);  // キューへの挿入
     static uint8_t dequeue();              // キューからの取出し
     static uint8_t available();            // 取出し可能チェック
