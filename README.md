@@ -26,16 +26,16 @@ Arduino IDE 1.6.10以上 + Arduino STM32環境がインストールされてい�
 
 ## ライブラリのインストール
 - Arduino IDEを起動していない状態で  
-フォルダ **TKeyboard** を各自のArduino_STM32インストール先フォルダの  
-**Arduino_STM32\\STM32F1\\libraries\\** に配置して下さい。
+フォルダ **TKeyboard** を各自のライブラリ用ディレクトリlibrariesに配置して下さい。  
 - 配置後、Arduino IDEを起動して、メニュー [ファイル]-[スケッチの例]をクリックして  
 ライブラリ**TKeyboard**が追加されていることを確認して下さい。
 
 ## ハードウェア構成
 **(注意)**  
-PS/2 I/FのCLK、DATAの信号電圧に5Vを利用する場合は、
+PS/2インタフェースのCLK、DATA信号の電圧に5Vを利用する場合は、  
 5Vトレラント(5V耐性)のピンを利用して下さい。  
-SM32F103C8T6の5Vトレラント対応ピン  
+
+SM32F103C8T6の5Vトレラント対応ピン
 - PA8,PA9,PA10,PA11,PA12,PA13,PA14,PA15
 - PB3,PB4,PB6,PB7,PB8,PB9,PB10,PB11PB12,PB13,PB14,PB15
 
@@ -220,7 +220,7 @@ PS/2通信方向をホスト=>キーボードの方向に設定し、
 キーボードからキー入力情報を取得します。  
 
 - 書式  
-`keyEvent read() )`
+`keyEvent read()`
 
 - 引数  
 なし
@@ -313,171 +313,171 @@ Windowsキーが押されている状況がセットされます。
 |----------|------------|-----------------------|
 |KEY_ERROR|        0xFF |キーコードエラー
 |KEY_NONE |           0 | 入力なし
-| KEY_L_Alt|          1	| [左Alt]
-| KEY_L_Shift|		  2	| [左Shift]
-| KEY_L_Ctrl|		  3	| [左Ctrl]
-| KEY_R_Shift|		  4	| [右Shift]
-| KEY_R_Alt|		  5	| [右Alt]
-| KEY_R_Ctrl|		  6	| [右Ctrl]
-| KEY_L_GUI|		  7	| [左Windowsキー]
-| KEY_R_GUI|		  8	| [右Windowsキー]
-| KEY_NumLock|		  9	| [NumLock]
-| KEY_ScrollLock|	 10	| [ScrollLock]
-| KEY_CapsLock|	     11	| [CapsLock]
-| KEY_PrintScreen|	 12	| [PrintScreen]
-| KEY_HanZen|		 13	| [半角/全角 漢字]
-| KEY_Insert|		 14	| [Insert]
-| KEY_Home|		     15	| [Home]
-| KEY_Pause|		 16	| [Pause]
-| KEY_Romaji|		 17	| [カタカナ ひらがな ローマ字]
-| KEY_APP|			 18	| [メニューキー]
-| KEY_Henkan|		 19	| [変換]
-| KEY_Muhenkan|	     20	| [無変換]
-| KEY_PageUp|		 21	| [PageUp]
-| KEY_PageDown|	     22	| [PageDown]
-| KEY_End|			 23	| [End]
-| KEY_L_Arrow|		 24	| [←]
-| KEY_Up_Arrow|	     25	| [↑]
-| KEY_R_Arrow|		 26	| [→]
-| KEY_Down_Arrow|	 27	| [↓]
-| KEY_ESC|			 30	| [ESC]
-| KEY_Tab| 		     31	| [Tab]
-| KEY_Space|		 32	| [空白]
-| KEY_Backspace|	 33	| [BackSpace]
-| KEY_Delete|		 34	| [Delete]
-| KEY_Enter|		 35	| [Enter]
+| PS2_L_Alt|          1	| [左Alt]
+| PS2_L_Shift|		  2	| [左Shift]
+| PS2_L_Ctrl|		  3	| [左Ctrl]
+| PS2_R_Shift|		  4	| [右Shift]
+| PS2_R_Alt|		  5	| [右Alt]
+| PS2_R_Ctrl|		  6	| [右Ctrl]
+| PS2_L_GUI|		  7	| [左Windowsキー]
+| PS2_R_GUI|		  8	| [右Windowsキー]
+| PS2_NumLock|		  9	| [NumLock]
+| PS2_ScrollLock|	 10	| [ScrollLock]
+| PS2_CapsLock|	     11	| [CapsLock]
+| PS2_PrintScreen|	 12	| [PrintScreen]
+| PS2_HanZen|		 13	| [半角/全角 漢字]
+| PS2_Insert|		 14	| [Insert]
+| PS2_Home|		     15	| [Home]
+| PS2_Pause|		 16	| [Pause]
+| PS2_Romaji|		 17	| [カタカナ ひらがな ローマ字]
+| PS2_APP|			 18	| [メニューキー]
+| PS2_Henkan|		 19	| [変換]
+| PS2_Muhenkan|	     20	| [無変換]
+| PS2_PageUp|		 21	| [PageUp]
+| PS2_PageDown|	     22	| [PageDown]
+| PS2_End|			 23	| [End]
+| PS2_L_Arrow|		 24	| [←]
+| PS2_Up_Arrow|	     25	| [↑]
+| PS2_R_Arrow|		 26	| [→]
+| PS2_Down_Arrow|	 27	| [↓]
+| PS2_ESC|			 30	| [ESC]
+| PS2_Tab| 		     31	| [Tab]
+| PS2_Space|		 32	| [空白]
+| PS2_Backspace|	 33	| [BackSpace]
+| PS2_Delete|		 34	| [Delete]
+| PS2_Enter|		 35	| [Enter]
 
 (2)通常キー（ASCIIコード変換可能キー)のキーコード  
 
 | 定義名 | 値 |意味|
 |--------|----------|------|
-| KEY_Colon      |36| [: *]
-| KEY_Semicolon  |37| [; +]
-| KEY_Kamma      |38| [, <]
-| KEY_minus      |39| [- =]
-| KEY_Dot        |40| [. >]
-| KEY_Question   |41| [/ ?]
-| KEY_AT         |42| [@ \`]
-| KEY_L_brackets |43| [[ {]
-| KEY_Pipe       |44| [\｜]
-| KEY_R_brackets |45| [] }]
-| KEY_Hat        |46| [^ ~]
-| KEY_Ro         |47| [\ _ ろ]
-| KEY_0          |48| [0 )]
-| KEY_1		     |49| [1 !]
-| KEY_2			 |50| [2 @]
-| KEY_3			 |51| [3 #]
-| KEY_4			 |52| [4 $]
-| KEY_5			 |53| [5 %]
-| KEY_6			 |54| [6 ^]
-| KEY_7			 |55| [7 &]
-| KEY_8			 |56| [8 *]
-| KEY_9			 |57| [9 (]
-| KEY_Pipe2      |58| [\｜] (USキーボード用)
-| KEY_A			 |65| [a A]
-| KEY_B			 |66| [b B]
-| KEY_C			 |67| [c C]
-| KEY_D			 |68| [d D]
-| KEY_E			 |69| [e E]
-| KEY_F			 |70| [f F]
-| KEY_G			 |71| [g G]
-| KEY_H			 |72| [h H]
-| KEY_I			 |73| [i I]
-| KEY_J			 |74| [j J]
-| KEY_K			 |75| [k K]
-| KEY_L			 |76| [l L]
-| KEY_M			 |77| [m M]
-| KEY_N			 |78| [n N]
-| KEY_O			 |79| [o O]
-| KEY_P			 |80| [p P]
-| KEY_Q			 |81| [q Q]
-| KEY_R			 |82| [r R]
-| KEY_S			 |83| [s S]
-| KEY_T			 |84| [t T]
-| KEY_U			 |85| [u U]
-| KEY_V			 |86| [v V]
-| KEY_W			 |87| [w W]
-| KEY_X			 |88| [x X]
-| KEY_Y			 |89| [y Y]
-| KEY_Z			 |90| [z Z]
+| PS2_Colon      |36| [: *]
+| PS2_Semicolon  |37| [; +]
+| PS2_Kamma      |38| [, <]
+| PS2_minus      |39| [- =]
+| PS2_Dot        |40| [. >]
+| PS2_Question   |41| [/ ?]
+| PS2_AT         |42| [@ \`]
+| PS2_L_brackets |43| [[ {]
+| PS2_Pipe       |44| [\｜]
+| PS2_R_brackets |45| [] }]
+| PS2_Hat        |46| [^ ~]
+| PS2_Ro         |47| [\ _ ろ]
+| PS2_0          |48| [0 )]
+| PS2_1		     |49| [1 !]
+| PS2_2			 |50| [2 @]
+| PS2_3			 |51| [3 #]
+| PS2_4			 |52| [4 $]
+| PS2_5			 |53| [5 %]
+| PS2_6			 |54| [6 ^]
+| PS2_7			 |55| [7 &]
+| PS2_8			 |56| [8 *]
+| PS2_9			 |57| [9 (]
+| PS2_Pipe2      |58| [\｜] (USキーボード用)
+| PS2_A			 |65| [a A]
+| PS2_B			 |66| [b B]
+| PS2_C			 |67| [c C]
+| PS2_D			 |68| [d D]
+| PS2_E			 |69| [e E]
+| PS2_F			 |70| [f F]
+| PS2_G			 |71| [g G]
+| PS2_H			 |72| [h H]
+| PS2_I			 |73| [i I]
+| PS2_J			 |74| [j J]
+| PS2_K			 |75| [k K]
+| PS2_L			 |76| [l L]
+| PS2_M			 |77| [m M]
+| PS2_N			 |78| [n N]
+| PS2_O			 |79| [o O]
+| PS2_P			 |80| [p P]
+| PS2_Q			 |81| [q Q]
+| PS2_R			 |82| [r R]
+| PS2_S			 |83| [s S]
+| PS2_T			 |84| [t T]
+| PS2_U			 |85| [u U]
+| PS2_V			 |86| [v V]
+| PS2_W			 |87| [w W]
+| PS2_X			 |88| [x X]
+| PS2_Y			 |89| [y Y]
+| PS2_Z			 |90| [z Z]
 
 
 (3)テンキーのキーコード
 
 | 定義名 | 値 |意味|
 |--------|----------|------|
-| KEY_PAD_Equal |94	| [=]
-| KEY_PAD_Enter	|95	| [Enter]
-| KEY_PAD_0		|96 | [0/Insert]
-| KEY_PAD_1		|97 | [1/End]
-| KEY_PAD_2		|98 | [2/DownArrow]
-| KEY_PAD_3		|99 | [3/PageDown]
-| KEY_PAD_4		|100| [4/LeftArrow]
-| KEY_PAD_5		|101| [5]
-| KEY_PAD_6		|102| [6/RightArrow]
-| KEY_PAD_7		|103| [7/Home]
-| KEY_PAD_8		|104| [8/UPArrow]
-| KEY_PAD_9		|105| [9/PageUp]
-| KEY_PAD_Multi	|106| [*]
-| KEY_PAD_Plus	|107| [+]
-| KEY_PAD_Kamma	|108| [,]
-| KEY_PAD_Minus	|109| [-]
-| KEY_PAD_DOT	|110| [./Delete]
-| KEY_PAD_Slash	|111| [/]
+| PS2_PAD_Equal |94	| [=]
+| PS2_PAD_Enter	|95	| [Enter]
+| PS2_PAD_0		|96 | [0/Insert]
+| PS2_PAD_1		|97 | [1/End]
+| PS2_PAD_2		|98 | [2/DownArrow]
+| PS2_PAD_3		|99 | [3/PageDown]
+| PS2_PAD_4		|100| [4/LeftArrow]
+| PS2_PAD_5		|101| [5]
+| PS2_PAD_6		|102| [6/RightArrow]
+| PS2_PAD_7		|103| [7/Home]
+| PS2_PAD_8		|104| [8/UPArrow]
+| PS2_PAD_9		|105| [9/PageUp]
+| PS2_PAD_Multi	|106| [*]
+| PS2_PAD_Plus	|107| [+]
+| PS2_PAD_Kamma	|108| [,]
+| PS2_PAD_Minus	|109| [-]
+| PS2_PAD_DOT	|110| [./Delete]
+| PS2_PAD_Slash	|111| [/]
 
 (4)ファンクションキーのキーコード
 
 | 定義名 | 値 |意味|
 |----------|--------|------|
-| KEY_F1 	|112	| [F1]
-| KEY_F2 	|113	| [F2]
-| KEY_F3 	|114	| [F3]
-| KEY_F4 	|115	| [F4]
-| KEY_F5 	|116	| [F5]
-| KEY_F6 	|117	| [F6]
-| KEY_F7 	|118	| [F7]
-| KEY_F8 	|119	| [F8]
-| KEY_F9 	|120	| [F9]
-| KEY_F10 	|121	| [F10]
-| KEY_F11 	|122	| [F11]
-| KEY_F12 	|123	| [F12]
-| KEY_F13 	|124	| [F13]
-| KEY_F14 	|125	| [F14]
-| KEY_F15 	|126	| [F15]
-| KEY_F16 	|127	| [F16]
-| KEY_F17 	|128	| [F17]
-| KEY_F18 	|129	| [F18]
-| KEY_F19 	|130	| [F19]
-| KEY_F20 	|131	| [F20]
-| KEY_F21 	|132	| [F21]
-| KEY_F22 	|133	| [F22]
-| KEY_F23 	|134	| [F23]
+| PS2_F1 	|112	| [F1]
+| PS2_F2 	|113	| [F2]
+| PS2_F3 	|114	| [F3]
+| PS2_F4 	|115	| [F4]
+| PS2_F5 	|116	| [F5]
+| PS2_F6 	|117	| [F6]
+| PS2_F7 	|118	| [F7]
+| PS2_F8 	|119	| [F8]
+| PS2_F9 	|120	| [F9]
+| PS2_F10 	|121	| [F10]
+| PS2_F11 	|122	| [F11]
+| PS2_F12 	|123	| [F12]
+| PS2_F13 	|124	| [F13]
+| PS2_F14 	|125	| [F14]
+| PS2_F15 	|126	| [F15]
+| PS2_F16 	|127	| [F16]
+| PS2_F17 	|128	| [F17]
+| PS2_F18 	|129	| [F18]
+| PS2_F19 	|130	| [F19]
+| PS2_F20 	|131	| [F20]
+| PS2_F21 	|132	| [F21]
+| PS2_F22 	|133	| [F22]
+| PS2_F23 	|134	| [F23]
 
 (5)マルチマディアキーのキーコード
 
 | 定義名 | 値 |意味|
 |-------------------|---|---------------|
-| KEY_PrevTrack		|135| 前のトラック
-| KEY_WWW_Favorites	|136| ブラウザお気に入り
-| LEY_WWW_Refresh	|137| ブラウザ更新表示
-| KEY_VolumeDown	|138| 音量を下げる
-| KEY_Mute			|139| ミュート
-| KEY_WWW_Stop		|140| ブラウザ停止
-| KEY_Calc			|141| 電卓
-| KEY_WWW_Forward	|142| ブラウザ進む
-| KEY_VolumeUp		|143| 音量を上げる
-| KEY_PLAY			|144| 再生
-| KEY_POWER			|145| 電源ON
-| KEY_WWW_Back		|146| ブラウザ戻る
-| KEY_WWW_Home		|147| ブラウザホーム
-| KEY_Sleep			|148| スリープ
-| KEY_Mycomputer	|149| マイコンピュータ
-| KEY_Mail			|150| メーラー起動
-| KEY_NextTrack		|151| 次のトラック
-| KEY_MEdiaSelect	|152| メディア選択
-| KEY_Wake			|153| ウェイクアップ
-| KEY_Stop			|154| 停止
-| KEY_WWW_Search	|155| ウェブ検索
+| PS2_PrevTrack		|135| 前のトラック
+| PS2_WWW_Favorites	|136| ブラウザお気に入り
+| PS2_WWW_Refresh	|137| ブラウザ更新表示
+| PS2_VolumeDown	|138| 音量を下げる
+| PS2_Mute			|139| ミュート
+| PS2_WWW_Stop		|140| ブラウザ停止
+| PS2_Calc			|141| 電卓
+| PS2_WWW_Forward	|142| ブラウザ進む
+| PS2_VolumeUp		|143| 音量を上げる
+| PS2_PLAY			|144| 再生
+| PS2_POWER			|145| 電源ON
+| PS2_WWW_Back		|146| ブラウザ戻る
+| PS2_WWW_Home		|147| ブラウザホーム
+| PS2_Sleep			|148| スリープ
+| PS2_Mycomputer	|149| マイコンピュータ
+| PS2_Mail			|150| メーラー起動
+| PS2_NextTrack		|151| 次のトラック
+| PS2_MEdiaSelect	|152| メディア選択
+| PS2_Wake			|153| ウェイクアップ
+| PS2_Stop			|154| 停止
+| PS2_WWW_Search	|155| ウェブ検索
 
 ## サンプルスケッチ
 TKeyboard_exsample.ino
